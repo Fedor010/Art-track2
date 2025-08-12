@@ -6,7 +6,7 @@ import streamlit as st
 from pytrends.request import TrendReq
 
 # Your Yandex OAuth Token
-YANDEX_OAUTH_TOKEN = "your_yandex_token_here"
+YANDEX_OAUTH_TOKEN = "your_yandex_token_here"  # Replace with your actual token
 YANDEX_API_URL = "https://api.direct.yandex.com/json/v5/forecasts"
 
 # Region code mappings for Google and Yandex
@@ -63,6 +63,13 @@ def get_yandex_search_count(keyword, region_code):
         r.raise_for_status()
         data = r.json()
         return data.get("result", {}).get("Forecast", {}).get("Impressions", None)
+    except requests.exceptions.HTTPError as http_err:
+        if r.status_code == 404:
+            # Silently ignore 404 errors - no forecast data for this keyword
+            return None
+        else:
+            st.error(f"Yandex Wordstat error for '{keyword}': {http_err}")
+            return None
     except Exception as e:
         st.error(f"Yandex Wordstat error for '{keyword}': {e}")
         return None
@@ -111,7 +118,9 @@ keyword = st.text_input("Enter seed keyword (in Russian)")
 region_name = st.selectbox("Select region", list(REGIONS.keys()), index=0)
 lang_name = st.selectbox("Select language", list(LANGUAGES.keys()), index=0)
 
-months = st.selectbox("Select timeframe (months back)", list(range(1, 13)), index=5)
+# Default timeframe to 12 months
+months = st.selectbox("Select timeframe (months back)", list(range(1, 13)), index=11)
+
 run_btn = st.button("Run and Download")
 
 if run_btn:
