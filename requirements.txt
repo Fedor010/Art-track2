@@ -1,0 +1,6 @@
+streamlit
+pandas
+requests
+pytrends
+openpyxl
+xlrd
