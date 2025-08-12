@@ -6,7 +6,7 @@ import streamlit as st
 from pytrends.request import TrendReq
 
 # Your Yandex OAuth Token (replace with your actual token)
-YANDEX_OAUTH_TOKEN = "your_yandex_token_here"
+YANDEX_OAUTH_TOKEN = "y0__xC_vqmrCBjoxDkgs_n3iBRWlmEw7FrBy23_f06ynwGWfHUFPA"
 YANDEX_API_URL = "https://api.direct.yandex.com/json/v5/forecasts"
 
 # Region code mappings for Google and Yandex
@@ -20,17 +20,6 @@ REGIONS = {
     "France": "FR",
 }
 
-# Yandex Wordstat GeoIDs for regions (must be a list of ints)
-YANDEX_GEO_IDS = {
-    "RU": [225],
-    "UA": [143],
-    "KZ": [193],
-    "BY": [149],
-    "US": [187],
-    "DE": [77],
-    "FR": [83],
-}
-
 # Languages for Google Trends & Yandex Suggest
 LANGUAGES = {
     "Russian": "ru",
@@ -38,41 +27,6 @@ LANGUAGES = {
     "Ukrainian": "uk",
     "Kazakh": "kk",
 }
-
-def geo_to_yandex_geo(google_geo_code):
-    return YANDEX_GEO_IDS.get(google_geo_code, [])
-
-def get_yandex_search_count(keyword, region_code):
-    headers = {
-        "Authorization": f"Bearer {YANDEX_OAUTH_TOKEN}",
-        "Accept-Language": "ru",
-        "Content-Type": "application/json; charset=utf-8",
-    }
-    geo_ids = geo_to_yandex_geo(region_code)
-    payload = {
-        "method": "Get",
-        "params": {
-            "SelectionCriteria": {
-                "GeoID": geo_ids,
-                "Keywords": [keyword]
-            }
-        }
-    }
-    try:
-        r = requests.post(YANDEX_API_URL, headers=headers, json=payload, timeout=20)
-        r.raise_for_status()
-        data = r.json()
-        return data.get("result", {}).get("Forecast", {}).get("Impressions", None)
-    except requests.exceptions.HTTPError as http_err:
-        if r.status_code == 404:
-            # Silently ignore 404 errors - no forecast data for this keyword
-            return None
-        else:
-            st.error(f"Yandex Wordstat error for '{keyword}': {http_err}")
-            return None
-    except Exception as e:
-        st.error(f"Yandex Wordstat error for '{keyword}': {e}")
-        return None
 
 def get_google_trends_related(keyword, geo='RU', timeframe='today 12-m', lang='ru'):
     pytrends = TrendReq(hl=lang, tz=180)
@@ -83,8 +37,7 @@ def get_google_trends_related(keyword, geo='RU', timeframe='today 12-m', lang='r
         top = related.get('top') if related else None
         if top is not None:
             for _, row in top.iterrows():
-                count = get_yandex_search_count(row["query"], region_code=geo)
-                results.append((row["query"], count))
+                results.append(row["query"])
     except Exception as e:
         st.warning(f"Google Trends error for '{keyword}': {e}")
     return results
@@ -128,16 +81,16 @@ if st.button("Run and Download"):
         lang_code = LANGUAGES[lang_name]
         timeframe = f"today {months}-m"
 
-        with st.spinner("Fetching Google Trends related keywords and Yandex search counts..."):
+        with st.spinner("Fetching Google Trends related keywords..."):
             google_data = get_google_trends_related(keyword, geo=geo_code, timeframe=timeframe, lang=lang_code)
 
         with st.spinner("Fetching Yandex Suggest keywords..."):
             yandex_suggest_data = get_yandex_suggest(keyword, lang=lang_code)
 
-        # Google Trends + Yandex Search Counts Table
+        # Google Trends Keywords Table (no volume)
         if google_data:
-            df_google = pd.DataFrame(google_data, columns=["Keyword", "Monthly Searches (Yandex)"])
-            st.subheader("Google Trends Related Keywords + Yandex Search Counts")
+            df_google = pd.DataFrame(google_data, columns=["Keyword"])
+            st.subheader("Google Trends Related Keywords")
             st.dataframe(df_google)
             buffer_google = io.BytesIO()
             with pd.ExcelWriter(buffer_google, engine='openpyxl') as writer:
@@ -152,10 +105,10 @@ if st.button("Run and Download"):
         else:
             st.info("No Google Trends related keywords found.")
 
-        # Yandex Suggest Keywords Table
+        # Yandex Suggest Keywords Table (no volume)
         if yandex_suggest_data:
             df_yandex = pd.DataFrame(yandex_suggest_data, columns=["Keyword"])
-            st.subheader("Yandex Suggest Keywords (no volume data)")
+            st.subheader("Yandex Suggest Keywords")
             st.dataframe(df_yandex)
             buffer_yandex = io.BytesIO()
             with pd.ExcelWriter(buffer_yandex, engine='openpyxl') as writer:
