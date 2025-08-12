@@ -64,7 +64,7 @@ def get_yandex_suggest(keyword, lang="ru"):
 # Streamlit UI
 st.title("Keyword Research App")
 
-keyword = st.text_input("Enter seed keyword (in Russian)")
+keyword = st.text_input("Enter seed keyword")
 
 region_name = st.selectbox("Select region", list(REGIONS.keys()), index=0)
 lang_name = st.selectbox("Select language", list(LANGUAGES.keys()), index=0)
