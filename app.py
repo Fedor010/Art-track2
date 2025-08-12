@@ -45,6 +45,27 @@ def get_google_trends_related(keyword, geo='RU', timeframe='today 12-m'):
         st.warning(f"Google Trends error for '{keyword}': {e}")
     return results
 
+def get_yandex_suggest(keyword, lang="ru"):
+    url = "https://suggest.yandex.net/suggest-ya.cgi"
+    params = {
+        "part": keyword,
+        "lang": lang,
+        "uil": lang,
+        "v": "4",
+        "search_type": "suggest"
+    }
+    headers = {
+        "User-Agent": "keyword-agent/1.0"
+    }
+    try:
+        r = requests.get(url, params=params, headers=headers, timeout=15)
+        r.raise_for_status()
+        suggestions = r.json()[1]
+        return suggestions
+    except Exception as e:
+        st.error(f"Yandex Suggest error for '{keyword}': {e}")
+        return []
+
 # Streamlit UI
 st.title("Keyword Research App")
 
@@ -57,17 +78,38 @@ if run_btn:
         st.error("Please enter a keyword.")
     else:
         timeframe = f"today {months}-m"
-        with st.spinner("Fetching related searches..."):
-            data = get_google_trends_related(keyword, timeframe=timeframe)
-        if not data:
-            st.info("No related keywords found.")
+        with st.spinner("Fetching Google Trends related keywords and Yandex search counts..."):
+            trends_data = get_google_trends_related(keyword, timeframe=timeframe)
+        with st.spinner("Fetching Yandex Suggest keywords..."):
+            yandex_suggest_data = get_yandex_suggest(keyword)
+
+        if not trends_data:
+            st.info("No Google Trends related keywords found.")
         else:
-            df = pd.DataFrame(data, columns=["Keyword", "Monthly Searches (Yandex)"])
-            st.dataframe(df)
-            towrite = df.to_excel(index=False)
+            df_trends = pd.DataFrame(trends_data, columns=["Keyword", "Monthly Searches (Yandex)"])
+            st.subheader("Google Trends Related Keywords + Yandex Monthly Search Counts")
+            st.dataframe(df_trends)
+
+            towrite_trends = df_trends.to_excel(index=False)
             st.download_button(
-                label="Download as Excel",
-                data=towrite,
-                file_name="keywords.xlsx",
+                label="Download Google Trends Data as Excel",
+                data=towrite_trends,
+                file_name="google_trends_keywords.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+
+        if not yandex_suggest_data:
+            st.info("No Yandex Suggest keywords found.")
+        else:
+            df_yandex_suggest = pd.DataFrame(yandex_suggest_data, columns=["Keyword"])
+            st.subheader("Yandex Suggest Keywords (no volume data)")
+            st.dataframe(df_yandex_suggest)
+
+            towrite_yandex = df_yandex_suggest.to_excel(index=False)
+            st.download_button(
+                label="Download Yandex Suggest Data as Excel",
+                data=towrite_yandex,
+                file_name="yandex_suggest_keywords.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
