@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 from pytrends.request import TrendReq
 
-YANDEX_OAUTH_TOKEN = "your_yandex_token_here"
+YANDEX_OAUTH_TOKEN = "y0__xC_vqmrCBjoxDkgs_n3iBRWlmEw7FrBy23_f06ynwGWfHUFPA"
 YANDEX_API_URL = "https://api.direct.yandex.com/json/v5/forecasts"
 
 REGIONS = {
@@ -86,7 +86,10 @@ if st.button("Run and Download"):
 
         with st.spinner("Fetching Yandex Suggest keywords..."):
             yandex_suggest_data = get_yandex_suggest(keyword, lang=lang_code)
-            yandex_suggest_data = yandex_suggest_data[:num_results]  # limit results
+            actual_count = len(yandex_suggest_data) if yandex_suggest_data else 0
+            if actual_count > num_results:
+                yandex_suggest_data = yandex_suggest_data[:num_results]
+            st.info(f"Showing {min(actual_count, num_results)} Yandex suggestions (requested {num_results})")
 
         # Google Trends Keywords Table
         if google_data:
