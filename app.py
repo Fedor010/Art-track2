@@ -1,4 +1,5 @@
 import time
+import io
 import requests
 import pandas as pd
 import streamlit as st
@@ -90,10 +91,14 @@ if run_btn:
             st.subheader("Google Trends Related Keywords + Yandex Monthly Search Counts")
             st.dataframe(df_trends)
 
-            towrite_trends = df_trends.to_excel(index=False)
+            buffer_trends = io.BytesIO()
+            with pd.ExcelWriter(buffer_trends, engine='openpyxl') as writer:
+                df_trends.to_excel(writer, index=False)
+            buffer_trends.seek(0)
+
             st.download_button(
                 label="Download Google Trends Data as Excel",
-                data=towrite_trends,
+                data=buffer_trends,
                 file_name="google_trends_keywords.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
@@ -105,11 +110,16 @@ if run_btn:
             st.subheader("Yandex Suggest Keywords (no volume data)")
             st.dataframe(df_yandex_suggest)
 
-            towrite_yandex = df_yandex_suggest.to_excel(index=False)
+            buffer_suggest = io.BytesIO()
+            with pd.ExcelWriter(buffer_suggest, engine='openpyxl') as writer:
+                df_yandex_suggest.to_excel(writer, index=False)
+            buffer_suggest.seek(0)
+
             st.download_button(
                 label="Download Yandex Suggest Data as Excel",
-                data=towrite_yandex,
+                data=buffer_suggest,
                 file_name="yandex_suggest_keywords.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+
 
