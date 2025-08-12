@@ -5,8 +5,8 @@ import pandas as pd
 import streamlit as st
 from pytrends.request import TrendReq
 
-# Your Yandex OAuth Token
-YANDEX_OAUTH_TOKEN = "your_yandex_token_here"  # Replace with your actual token
+# Your Yandex OAuth Token (replace with your actual token)
+YANDEX_OAUTH_TOKEN = "your_yandex_token_here"
 YANDEX_API_URL = "https://api.direct.yandex.com/json/v5/forecasts"
 
 # Region code mappings for Google and Yandex
@@ -118,12 +118,9 @@ keyword = st.text_input("Enter seed keyword (in Russian)")
 region_name = st.selectbox("Select region", list(REGIONS.keys()), index=0)
 lang_name = st.selectbox("Select language", list(LANGUAGES.keys()), index=0)
 
-# Default timeframe to 12 months
-months = st.selectbox("Select timeframe (months back)", list(range(1, 13)), index=11)
+months = st.selectbox("Select timeframe (months back)", list(range(1, 13)), index=11)  # default 12 months
 
-run_btn = st.button("Run and Download")
-
-if run_btn:
+if st.button("Run and Download"):
     if not keyword.strip():
         st.error("Please enter a keyword.")
     else:
@@ -132,45 +129,43 @@ if run_btn:
         timeframe = f"today {months}-m"
 
         with st.spinner("Fetching Google Trends related keywords and Yandex search counts..."):
-            trends_data = get_google_trends_related(keyword, geo=geo_code, timeframe=timeframe, lang=lang_code)
+            google_data = get_google_trends_related(keyword, geo=geo_code, timeframe=timeframe, lang=lang_code)
 
         with st.spinner("Fetching Yandex Suggest keywords..."):
             yandex_suggest_data = get_yandex_suggest(keyword, lang=lang_code)
 
-        if not trends_data:
-            st.info("No Google Trends related keywords found.")
-        else:
-            df_trends = pd.DataFrame(trends_data, columns=["Keyword", "Monthly Searches (Yandex)"])
-            st.subheader(f"Google Trends Related Keywords + Yandex Monthly Search Counts ({region_name}, {lang_name})")
-            st.dataframe(df_trends)
-
-            buffer_trends = io.BytesIO()
-            with pd.ExcelWriter(buffer_trends, engine='openpyxl') as writer:
-                df_trends.to_excel(writer, index=False)
-            buffer_trends.seek(0)
-
+        # Google Trends + Yandex Search Counts Table
+        if google_data:
+            df_google = pd.DataFrame(google_data, columns=["Keyword", "Monthly Searches (Yandex)"])
+            st.subheader("Google Trends Related Keywords + Yandex Search Counts")
+            st.dataframe(df_google)
+            buffer_google = io.BytesIO()
+            with pd.ExcelWriter(buffer_google, engine='openpyxl') as writer:
+                df_google.to_excel(writer, index=False)
+            buffer_google.seek(0)
             st.download_button(
-                label="Download Google Trends Data as Excel",
-                data=buffer_trends,
+                "Download Google Trends Data as Excel",
+                buffer_google,
                 file_name="google_trends_keywords.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-
-        if not yandex_suggest_data:
-            st.info("No Yandex Suggest keywords found.")
         else:
-            df_yandex_suggest = pd.DataFrame(yandex_suggest_data, columns=["Keyword"])
-            st.subheader(f"Yandex Suggest Keywords (no volume data) ({region_name}, {lang_name})")
-            st.dataframe(df_yandex_suggest)
+            st.info("No Google Trends related keywords found.")
 
-            buffer_suggest = io.BytesIO()
-            with pd.ExcelWriter(buffer_suggest, engine='openpyxl') as writer:
-                df_yandex_suggest.to_excel(writer, index=False)
-            buffer_suggest.seek(0)
-
+        # Yandex Suggest Keywords Table
+        if yandex_suggest_data:
+            df_yandex = pd.DataFrame(yandex_suggest_data, columns=["Keyword"])
+            st.subheader("Yandex Suggest Keywords (no volume data)")
+            st.dataframe(df_yandex)
+            buffer_yandex = io.BytesIO()
+            with pd.ExcelWriter(buffer_yandex, engine='openpyxl') as writer:
+                df_yandex.to_excel(writer, index=False)
+            buffer_yandex.seek(0)
             st.download_button(
-                label="Download Yandex Suggest Data as Excel",
-                data=buffer_suggest,
+                "Download Yandex Suggest Data as Excel",
+                buffer_yandex,
                 file_name="yandex_suggest_keywords.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+        else:
+            st.info("No Yandex Suggest keywords found.")
