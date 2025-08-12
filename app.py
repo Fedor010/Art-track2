@@ -1,5 +1,3 @@
-#y0__xC_vqmrCBjoxDkgs_n3iBRWlmEw7FrBy23_f06ynwGWfHUFPA
-
 import time
 import io
 import requests
@@ -7,8 +5,7 @@ import pandas as pd
 import streamlit as st
 from pytrends.request import TrendReq
 
-# Your Yandex OAuth Token (replace with your actual token)
-YANDEX_OAUTH_TOKEN = "y0__xC_vqmrCBjoxDkgs_n3iBRWlmEw7FrBy23_f06ynwGWfHUFPA"
+YANDEX_OAUTH_TOKEN = "your_yandex_token_here"
 YANDEX_API_URL = "https://api.direct.yandex.com/json/v5/forecasts"
 
 REGIONS = {
@@ -36,7 +33,7 @@ def get_google_trends_related(keyword, geo='RU', timeframe='today 12-m', lang='r
         related = pytrends.related_queries().get(keyword)
         top = related.get('top') if related else None
         if top is not None:
-            top = top.sort_values("value", ascending=False)  # <-- sorting added here
+            top = top.sort_values("value", ascending=False)
             for _, row in top.iterrows():
                 results.append(row["query"])
     except Exception as e:
@@ -71,8 +68,9 @@ keyword = st.text_input("Enter seed keyword (in Russian)")
 
 region_name = st.selectbox("Select region", list(REGIONS.keys()), index=0)
 lang_name = st.selectbox("Select language", list(LANGUAGES.keys()), index=0)
-
 months = st.selectbox("Select timeframe (months back)", list(range(1, 13)), index=11)  # default 12 months
+
+num_results = st.number_input("Number of results to show (max)", min_value=1, max_value=50, value=10, step=1)
 
 if st.button("Run and Download"):
     if not keyword.strip():
@@ -84,11 +82,13 @@ if st.button("Run and Download"):
 
         with st.spinner("Fetching Google Trends related keywords..."):
             google_data = get_google_trends_related(keyword, geo=geo_code, timeframe=timeframe, lang=lang_code)
+            google_data = google_data[:num_results]  # limit results
 
         with st.spinner("Fetching Yandex Suggest keywords..."):
             yandex_suggest_data = get_yandex_suggest(keyword, lang=lang_code)
+            yandex_suggest_data = yandex_suggest_data[:num_results]  # limit results
 
-        # Google Trends Keywords Table (no volume)
+        # Google Trends Keywords Table
         if google_data:
             df_google = pd.DataFrame(google_data, columns=["Keyword"])
             st.subheader("Google Trends Related Keywords (sorted by popularity)")
@@ -106,7 +106,7 @@ if st.button("Run and Download"):
         else:
             st.info("No Google Trends related keywords found.")
 
-        # Yandex Suggest Keywords Table (no volume)
+        # Yandex Suggest Keywords Table
         if yandex_suggest_data:
             df_yandex = pd.DataFrame(yandex_suggest_data, columns=["Keyword"])
             st.subheader("Yandex Suggest Keywords")
@@ -123,4 +123,3 @@ if st.button("Run and Download"):
             )
         else:
             st.info("No Yandex Suggest keywords found.")
-
