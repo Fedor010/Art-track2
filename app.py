@@ -1,3 +1,5 @@
+#y0__xC_vqmrCBjoxDkgs_n3iBRWlmEw7FrBy23_f06ynwGWfHUFPA
+
 import time
 import io
 import requests
@@ -9,7 +11,6 @@ from pytrends.request import TrendReq
 YANDEX_OAUTH_TOKEN = "y0__xC_vqmrCBjoxDkgs_n3iBRWlmEw7FrBy23_f06ynwGWfHUFPA"
 YANDEX_API_URL = "https://api.direct.yandex.com/json/v5/forecasts"
 
-# Region code mappings for Google and Yandex
 REGIONS = {
     "Russia": "RU",
     "Ukraine": "UA",
@@ -20,7 +21,6 @@ REGIONS = {
     "France": "FR",
 }
 
-# Languages for Google Trends & Yandex Suggest
 LANGUAGES = {
     "Russian": "ru",
     "English": "en",
@@ -36,6 +36,7 @@ def get_google_trends_related(keyword, geo='RU', timeframe='today 12-m', lang='r
         related = pytrends.related_queries().get(keyword)
         top = related.get('top') if related else None
         if top is not None:
+            top = top.sort_values("value", ascending=False)  # <-- sorting added here
             for _, row in top.iterrows():
                 results.append(row["query"])
     except Exception as e:
@@ -90,7 +91,7 @@ if st.button("Run and Download"):
         # Google Trends Keywords Table (no volume)
         if google_data:
             df_google = pd.DataFrame(google_data, columns=["Keyword"])
-            st.subheader("Google Trends Related Keywords")
+            st.subheader("Google Trends Related Keywords (sorted by popularity)")
             st.dataframe(df_google)
             buffer_google = io.BytesIO()
             with pd.ExcelWriter(buffer_google, engine='openpyxl') as writer:
@@ -122,3 +123,4 @@ if st.button("Run and Download"):
             )
         else:
             st.info("No Yandex Suggest keywords found.")
+
